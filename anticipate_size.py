@@ -4,10 +4,6 @@ import scipy.stats
 import numpy as np
 import matplotlib.pyplot as plt
 
-hw_filtered_sizes = readAndSave.read_json('hw_filtered_dict.json', 'utf8')
-user_height= 1900
-user_weight= 60
-
 def size_str_to_num(size_list):
     #사이즈 숫자로 변환해서 계산하기 편하게 하기
     size_name = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"]
@@ -54,11 +50,16 @@ def find_close_distance_with_weight(height, weight, parameter_num):
     return other_users[index].tolist()
 
 
-def draw_2d_dot():
+def draw_2d_dot(except_x=0, except_y=0):
     """기존에 있는 데이터를 [키, 몸무게] 리스트로 변환하기"""
     data = readAndSave.read_json('hw_filtered_dict.json', 'utf8')
     # {1770:{70:..}
     xy_tuple = [[int(x), int(y)] for x in data.keys() for y in data[x].keys()]
+
+    #제외할 키, 몸무게(2개짜리 이상 구할때)
+    if [except_x, except_y] in xy_tuple:
+        del_index = xy_tuple.index([except_x, except_y])
+        del xy_tuple[del_index]
 
     return xy_tuple
 
@@ -70,7 +71,7 @@ def find_close_distance(height, weight):
 
     # 사용자와 이미 있는 자료들의 데이터 점
     user = np.array([height, weight])
-    other_users = np.array(draw_2d_dot())
+    other_users = np.array(draw_2d_dot(height, weight))
 
     #데이터 점 중에 가장 가까운 점 찾기
     deltas = other_users - user
@@ -80,28 +81,47 @@ def find_close_distance(height, weight):
     return other_users[index].tolist()
 
 
-#숫자로 바꾸기
-try:
-    # 하나만 있어도 문제가 되어야할듯(확률 계산이 불가능)
-    hw_filtered_sizes = [size_str_to_num(size)
-                         for size in hw_filtered_sizes[str(user_height)][str(user_weight)]]
-    print(hw_filtered_sizes)
-except KeyError:#실제로 없는 Key 라면?
-    # 비슷한 자료 찾기
-    assumed_height, assumed_weight = find_close_distance(user_height, user_weight)
-    # 키는 소수점이 아니라 int가 되어야함(원래 float임)
-    print(assumed_height, assumed_weight)
-    hw_filtered_sizes = [size_str_to_num(size)
-                         for size in hw_filtered_sizes[str(assumed_height)][str(assumed_weight)]]
 
-    print(hw_filtered_sizes)
+"""자료가 두 개 이상이 될때까지"""
+def find_good_data(user_height, user_weight, hw_filtered_sizes):
+    """데이터가 없을때는 가까운 데이터 가져오기. 가져온 데이터가 한개라면 가까운 데이터 가져오기"""
+    try:
+        hw_filtered_size_nums = [size_str_to_num(size)
+                                 for size in hw_filtered_sizes[str(user_height)][str(user_weight)]]
 
+        def find_another_data():
+            """2개 이하의 데이터가 있을 때 가까운 값에서 하나 더 찾아오기"""
+            another_height, another_weight = find_close_distance(user_height, user_weight)
+
+            another_data = [size_str_to_num(size)
+                            for size in hw_filtered_sizes[str(another_height)][str(another_weight)]]
+
+            hw_filtered_size_nums.extend(another_data)
+
+        if len(hw_filtered_size_nums) < 2:
+            find_another_data()
+
+        return hw_filtered_size_nums
+
+    except KeyError:
+        """데이터가 없을 때"""
+        assumed_height, assumed_weight = find_close_distance(user_height, user_weight)
+        # 재귀 함수를 했으면 return도 해줘야지 여기서 끝나는게 아닌데
+        return find_good_data(assumed_height, assumed_weight, hw_filtered_sizes)
+
+
+hw_filtered_sizes = readAndSave.read_json('hw_filtered_dict.json', 'utf8')
+user_height = 1900
+user_weight = 69
+
+#사이즈를 계산하기 편하게 숫자로 바꾸기
+hw_filtered_size_nums = find_good_data(user_height, user_weight, hw_filtered_sizes)
 #몸 부위별로 모으기
 size_each_parameter = [[one_person[parameter]
-                        for one_person in hw_filtered_sizes] for parameter in range(5)]
-print(size_each_parameter)
+                        for one_person in hw_filtered_size_nums] for parameter in range(5)]
 
-#자유도, 기댓값, 표준편차 계산
+
+#자유도, 기댓값, 표준편차 계산(이건 데이터가 다를때 해야되는 거겠지)
 parameter_basic_info = [(len(parameter)-1, np.mean(parameter), np.std(parameter)) for parameter in size_each_parameter]
 print(parameter_basic_info)
 xx = np.linspace(0, 6, 100)
