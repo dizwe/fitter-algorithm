@@ -3,6 +3,7 @@ import scipy as sp
 import scipy.stats
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import Counter
 
 def size_str_to_num(size_list):
     #사이즈 숫자로 변환해서 계산하기 편하게 하기
@@ -10,44 +11,6 @@ def size_str_to_num(size_list):
 
     return [size_name.index(size) for size in size_list]
 
-def compare_correlation():
-    """키~ 몸무게 제외 변수, 몸무게~ 키 제외 변수 상관계수 찾기"""
-    surveys = readAndSave.read_json('man_size.json', 'utf8')
-
-    # 104 키317 어깨너비 208 가슴둘레 233 팔길이 212 배꼽수준허리둘레 211 허리둘레
-    few_parameter_surveys = [[float(person[s]) for s in ['104', '510', '317', '208', '233', '211']]
-                             for person in surveys]
-
-    # parameter_surveys_list = list(zip(*few_parameter_surveys)) # zip으로 여러개 list를 한꺼번에 묶기
-    parameter_surveys_list = np.array(few_parameter_surveys).T # 위에랑 똑같은 소리
-
-    height_correlation = [np.corrcoef(parameter_surveys_list[0],
-                                parameter_surveys_list[par_num]) for par_num in [2, 3, 4, 5]]
-    weight_correlation = [np.corrcoef(parameter_surveys_list[1],
-                                parameter_surveys_list[par_num]) for par_num in [2, 3, 4, 5]]
-
-    return height_correlation, weight_correlation
-
-
-def find_close_distance_with_weight(height, weight, parameter_num):
-    """각 파라미터와 키, 몸무게의 상관계수를 가중치로 계산"""
-    #http://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
-    # 유클리드 거리 짧은거 찾기
-    height_cor, weight_cor = compare_correlation()
-
-    # 여기 가중치가 커질수록 해당 값을 '보존'하려는게 커진다.
-    hw_cor = [round(height_cor[parameter_num][0, 1], 1), round(weight_cor[parameter_num][0, 1], 1)]
-
-    # 사용자와 이미 있는 자료들의 데이터 점
-    user = np.array([height, weight])
-    other_users = np.array(draw_2d_dot())
-
-    #데이터 점 중에 가장 가까운 점 찾기
-    deltas = np.multiply(hw_cor, other_users)-np.multiply(hw_cor, user)
-    dist = np.einsum('ij,ij->i', deltas, deltas) #deltas 값 제곱
-    index = np.argmin(dist)#거기서 최소 index?
-
-    return other_users[index].tolist()
 
 
 def draw_2d_dot(except_x=0, except_y=0):
@@ -110,11 +73,24 @@ def find_good_data(user_height, user_weight, hw_filtered_sizes):
         return find_good_data(assumed_height, assumed_weight, hw_filtered_sizes)
 
 
-hw_filtered_sizes = readAndSave.read_json('hw_filtered_dict.json', 'utf8')
-user_height = 1900
-user_weight = 69
+def size_pdf(size, parameter):
+    parameter_basic_info = [len(parameter) - 1, np.mean(parameter), np.std(parameter)]
+    print(parameter_basic_info)
+    xx = np.linspace(0, 6, 100)  # 그래프 범위
+    print(i)
 
-#사이즈를 계산하기 편하게 숫자로 바꾸기
+    rv = sp.stats.t(df=parameter_basic_info[0], loc=parameter_basic_info[1], scale=parameter_basic_info[2])
+    plt.plot(xx, rv.pdf(xx))  # xx의 범위의 그래프르 stats pdf(probability density function)의 해당 값을 y값으로
+    plt.draw()
+    return rv.pdf(size) < 0.05
+
+
+
+hw_filtered_sizes = readAndSave.read_json('hw_filtered_dict.json', 'utf8')
+user_height = 1770
+user_weight = 70
+
+#괜찮은 사이즈를 찾고 글자 데이터를 숫자로 바꾸기
 hw_filtered_size_nums = find_good_data(user_height, user_weight, hw_filtered_sizes)
 #몸 부위별로 모으기
 size_each_parameter = [[one_person[parameter]
@@ -122,10 +98,23 @@ size_each_parameter = [[one_person[parameter]
 
 
 #자유도, 기댓값, 표준편차 계산(이건 데이터가 다를때 해야되는 거겠지)
-parameter_basic_info = [(len(parameter)-1, np.mean(parameter), np.std(parameter)) for parameter in size_each_parameter]
-print(parameter_basic_info)
-xx = np.linspace(0, 6, 100)
-rv = sp.stats.t(df=parameter_basic_info[4][0], loc=parameter_basic_info[4][1], scale=parameter_basic_info[4][2])
-plt.plot(xx, rv.pdf(xx))#xx의 범위의 그래프르 stats pdf(probability density function)의 해당 값을 y값으로
-print(rv.pdf(2))
-plt.show()
+suggest_size = []
+question = [None, 'Small', 'Small', 'Small', 'Big'] # ~하면 가 남는 편이다
+# ['height', 'shoulder', 'chest', 'arm', 'waist'] 순서
+for i, parameter in enumerate(size_each_parameter):
+    if len(set(parameter)) == 1: # 자료 종류가 하나라면
+        suggest_size.append(parameter[0]) # 그냥 자료 붙이기
+    else:  # 종류가 여러개라면 질문에 맞춰서
+        if question[i] is None:
+            size = Counter(parameter).most_common(1)[0]
+            suggest_size.append(size)
+        elif question[i] == 'Big':
+            size = max(parameter)
+            size = size-1 if size_pdf(size, parameter)<0.05 else size
+            suggest_size.append(size)
+        elif question[i] == 'Small':
+            size = min(parameter)
+            size = size + 1 if size_pdf(size, parameter) < 0.05 else size
+            suggest_size.append(size)
+
+print(suggest_size)
