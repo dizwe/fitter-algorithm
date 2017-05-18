@@ -1,8 +1,6 @@
 import readAndSave
 from functools import partial
 
-def data_min_to_max():
-    pass
 def search_data(data, height=None, weight=None):
     if height + 10 > int(data['104']) > height - 10:# 이런 범위도 나중에 분석해봐야함.
         if weight == None: #아무것도 안적었을 때
@@ -28,17 +26,12 @@ def guess_size(num, data):
         for criteria, name in zip(criterias, size_names):
             if data <= criteria:
                 return name
-        return size_names[-1]
+        return size_names[-1]#엄청 크면 제일큰 사이즈로
 
     return guess(criteria_list[func_list[num]])
 
 
-def aggregate_size(size_list):
-    #사이즈 숫자로 변환해서 계산하기 편하게 하기
-    size_name = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"]
-    size_num_list = [size_name.index(size) for size in size_list]
 
-    return size_name[max(size_num_list[i] for i in [0, 1, 2, 4])] #팔 길이는 일단 빼기
 
 def get_hw_filtered_dict(height, weight, filtered_surveys):
     #?????????? hw_filtered_surveys = list(filter(partial(search_data, height=height, weight=weight), surveys)) #surveys밖에 있는데도 돌아가네??????
@@ -75,7 +68,7 @@ if __name__ == "__main__":
         print(weight_min, weight_max)
 
         hw_filtered_dict[height]={}
-        if weight_min == weight_max: # 자료가 하나밖에 없다면
+        if weight_min == weight_max: # 자료가 하나밖에 없다면(하나만 있으면 for 문이 안돌아가므로)
             weight = weight_min
             hw_filtered_dict[height][weight] = get_hw_filtered_dict(height, weight, height_filtered_list)
             continue
@@ -87,11 +80,3 @@ if __name__ == "__main__":
 
 
 readAndSave.save_json(hw_filtered_dict, 'hw_filtered_dict.json', 'utf8')
-
-#에상 하는 부분 제거
-# print(guess_parameter_sizes)
-# aggregate_sizes = [aggregate_size(guess_parameter_size) for guess_parameter_size in guess_parameter_sizes]
-# print(len(list(filter(lambda x: x=="M",aggregate_sizes))))
-# #data랑 예상 결과값 합치기!
-# train_data = zip(few_parameter_surveys,aggregate_sizes)
-# print(list(train_data))
