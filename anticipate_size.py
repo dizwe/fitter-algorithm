@@ -108,7 +108,24 @@ def size_pdf(size, parameter):
     # plt.show()
     return rv.pdf(size) < 0.05
 
+def size_to_real(size_list):
+    """다시 실측값으로 바꾸기"""
+    func_list = ['height', 'shoulder', 'chest', 'arm', 'waist']
+    #["XS", "S", "M", "L", "XL", "XXL", "XXXL"]
+    criteria_list = {
+        'shoulder' : [395, 410, 425, 440, 460, 480, 500], # 애매 기준
+        'chest' : [840, 850, 930, 1010, 1080, 1200, 1280],
+        'arm' : [560, 565, 585, 600, 615, 625, 625], # 애매 기준
+        'waist' : [720, 760, 840, 920, 1000, 1080, 1160],
+        'height': [1650, 1650, 1750, 2000, 2100, 2100, 2100], # 일단 작은걸로 되개 하자.2000은 그냥 의미없음
+    }
 
+    each_par_real = {}
+    for i, size in enumerate(size_list):
+        parameter_size_list = criteria_list[func_list[i]]
+        each_par_real[func_list[i]] = parameter_size_list[size]
+
+    return each_par_real
 
 
 """하의도 여기서는 딱히 바꿀 것이 없을거"""
