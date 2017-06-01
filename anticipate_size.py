@@ -80,9 +80,7 @@ def guess_size_by_question(qna, sizes_each_parameter, data_error=0.05):
             suggest_size.append(parameter[0])  # 그냥 자료 붙이기
         else:  # 종류가 여러개라면 질문에 맞춰서
             if qna[i] == 1:
-                print(parameter)
                 size = Counter(parameter).most_common(1)[0][0]
-                print(size)
                 suggest_size.append(size)
             elif qna[i] == 2:  # 크다고 답했다면
                 size = max(parameter)

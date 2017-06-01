@@ -39,7 +39,7 @@ def get_hw_filtered_dict(height, weight, filtered_surveys):
     hw_filtered_surveys = list(filter(partial(search_data, height=height, weight=weight), filtered_surveys))
     if len(hw_filtered_surveys) ==0: return False# 데이터 없으면 그냥 False
 
-    # 104 키 317 어깨너비 208 가슴둘레 233 팔길이 212 배꼽수준허리둘레 211 허리둘레
+    # 104 키 317 어깨너비 208 가슴둘레 233 팔길이 212 배꼽수준허리둘레 211 허리둘레 유니클로가 허리둘레야
     # 이거 바꾸면 func_list max(size_num_list[i] for i in 다 바꿔야함)
     few_parameter_surveys = [[int(person[s]) for s in ['104', '317', '208', '233', '211']]
                              for person in hw_filtered_surveys]
