@@ -160,8 +160,10 @@ def guess_int_by_question(qna, sizes_each_parameter, data_error=0.05):
 def find_size_under_significance(sorted_data, start_index=0, data_error=0.05):
     """적당 확률 찾을때까지 돌리기"""
     test_data = sorted_data[start_index]
+    direction = 'right' if start_index == -1 else 'left'
 
-    while size_p_value(test_data, sorted_data) < data_error:  # error 허용범위를 넘는다면
+    # error 허용범위를 넘는다면 다른 데이터 찾아봐
+    while size_p_value(test_data, sorted_data, direction=direction) < data_error:
         # 0이면 1씩 커지고 -1이면 1씩 작아지고
         print(sorted_data)
         start_index = start_index+1 if start_index >= 0 else start_index-1
@@ -171,7 +173,7 @@ def find_size_under_significance(sorted_data, start_index=0, data_error=0.05):
 
 
 def size_p_value(size, parameter, direction='left'):
-    """t분포표 만들고 p value 리턴하기"""
+    """t 분포표 만들고 p value 리턴하기"""
     # 자유도, 기댓값, 표준편차 계산(이건 데이터가 다를때 해야되는 거겠지)
     parameter_basic_info = [len(parameter) - 1, np.mean(parameter), np.std(parameter)]
 
@@ -181,7 +183,7 @@ def size_p_value(size, parameter, direction='left'):
     plt.plot(xx, rv.pdf(xx))  # xx의 범위의 그래프르 stats pdf(probability density function)의 해당 값을 y값으로
     # plt.show()
     if direction == 'left':
-        return rv.pdf(size)
+        return rv.cdf(size)
     elif direction == 'right':
         return rv.sf(size)
 
@@ -218,7 +220,8 @@ if __name__ == "__main__":
     # hw_filtered_size_nums = str_to_int_find_good_data(user_height, user_weight, hw_filtered_sizes)
     # # 몸 부위별로 모으기
     # size_each_parameter = [[one_person[parameter]
-    #                         for one_person in hw_filtered_size_nums] for parameter in range(5)]
+    #                         for one_person in hw_filtered_size_nums]
+    #                        for parameter in range(len(hw_filtered_size_nums[0]))]
     #
     # """예상 사이즈 추천하기"""
     # # 답변에 따라서
@@ -236,9 +239,11 @@ if __name__ == "__main__":
 
     # 괜찮은 사이즈를 찾고 글자 데이터를 숫자로 바꾸기
     hw_filtered_size_nums = int_find_good_data(user_height, user_weight, hw_filtered_sizes)
+
     # 몸 부위별로 모으기
     size_each_parameter = [[one_person[parameter]
-                            for one_person in hw_filtered_size_nums] for parameter in range(5)]
+                            for one_person in hw_filtered_size_nums]
+                           for parameter in range(len(hw_filtered_size_nums[0]))]  # 변수개수만큼 돌리기
 
     """예상 사이즈 추천하기"""
     # 답변에 따라서
