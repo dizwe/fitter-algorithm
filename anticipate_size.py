@@ -102,7 +102,7 @@ def int_find_good_data(height, weight, hw_filtered_sizes):
 
 
 def guess_size_by_question(qna, sizes_each_parameter, data_error=0.05):
-    """질문에 따라서 작다고 하면 '확률상 유의미하면' 작은걸로"""
+    """이미 잘라진 사이즈가 주어졌을때 질문에 따라서 작다고 하면 '확률상 유의미하면' 작은걸로"""
     suggest_size = []
     for i, parameter in enumerate(sizes_each_parameter):
         if len(set(parameter)) == 1:  # 자료 종류가 하나라면
@@ -113,12 +113,11 @@ def guess_size_by_question(qna, sizes_each_parameter, data_error=0.05):
                 suggest_size.append(size)
             elif qna[i] == 2:  # 크다고 답했다면
                 size = max(parameter)
-                print(size_pdf(size, parameter))##### 여기가 문제네!
-                size = size-1 if size_pdf(size, parameter) < data_error else size
+                size = size-1 if size_p_value(size, parameter) < data_error else size
                 suggest_size.append(size)
             elif qna[i] == 0:
                 size = min(parameter)
-                size = size + 1 if size_pdf(size, parameter) < data_error else size
+                size = size + 1 if size_p_value(size, parameter) < data_error else size
                 suggest_size.append(size)
 
     return suggest_size
@@ -162,7 +161,7 @@ def find_size_under_significance(sorted_data, start_index=0, data_error=0.05):
     """적당 확률 찾을때까지 돌리기"""
     test_data = sorted_data[start_index]
 
-    while size_pdf(test_data, sorted_data) < data_error:  # error 허용범위를 넘는다면
+    while size_p_value(test_data, sorted_data) < data_error:  # error 허용범위를 넘는다면
         # 0이면 1씩 커지고 -1이면 1씩 작아지고
         print(sorted_data)
         start_index = start_index+1 if start_index >= 0 else start_index-1
@@ -171,17 +170,20 @@ def find_size_under_significance(sorted_data, start_index=0, data_error=0.05):
     return test_data
 
 
-def size_pdf(size, parameter):
-    """t분포표 만들고 0.05보다 작은지 t/f로 리턴하기"""
+def size_p_value(size, parameter, direction='left'):
+    """t분포표 만들고 p value 리턴하기"""
     # 자유도, 기댓값, 표준편차 계산(이건 데이터가 다를때 해야되는 거겠지)
     parameter_basic_info = [len(parameter) - 1, np.mean(parameter), np.std(parameter)]
 
-    xx = np.linspace(0, 6, 100)  # 그래프 범위
+    xx = np.linspace(min(parameter), max(parameter), 100)  # 그래프 범위
 
     rv = sp.stats.t(df=parameter_basic_info[0], loc=parameter_basic_info[1], scale=parameter_basic_info[2])
     plt.plot(xx, rv.pdf(xx))  # xx의 범위의 그래프르 stats pdf(probability density function)의 해당 값을 y값으로
     # plt.show()
-    return rv.pdf(size) < 0.05
+    if direction == 'left':
+        return rv.pdf(size)
+    elif direction == 'right':
+        return rv.sf(size)
 
 
 def size_to_real(size_list):
