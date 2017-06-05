@@ -77,16 +77,26 @@ def get_bottom_hw_filtered_dict(height, weight, filtered_surveys):
     if len(hw_filtered_surveys) ==0: return False# 데이터 없으면 그냥 False
 
     # ['waist', 'crotch', 'thigh', 'length', 'hem', 'hip']
-    # 211 허리둘레 ?115 엉덩뼈가시높이(발 길이도 있어-이건 그냥 비율로) 419 넙다리둘레 128 샅높이(나중에 빼야함) 424 종아리 최소둘레 214 엉덩이
+    # 211 허리둘레 241 배꼽수준 샅앞뒤길이 419 넙다리둘레  115 엉덩뼈가시높이(발 길이도 있어-이건 그냥 비율로) 424 종아리 최소둘레 214 엉덩이
     # 이거 바꾸면 func_list max(size_num_list[i] for i in 다 바꿔야함)
     few_parameter_surveys = []
     for i, person in enumerate(hw_filtered_surveys):
         few_parameter_survey = []
-        for s in ['211', '115', '419', '128', '424', '214']:
+        for s in ['211', '241', '419', '115', '424', '214']:
             # 밑위를 구하기(엉덩뼈가시높이-넙다리둘레)- 이거 이상행....
-            if s == '128':
-                crotch_len = int(person['115'])-int(person['128'])
-                few_parameter_survey.append(crotch_len)
+            if s == '241':
+                # 샅전체-2(배꼽수준-엉덩뼈)
+                crotch_total_len = int(person['241'])-2*(int(person['114'])-int(person['115']))
+                # 앞샅길이(10:7 비율)
+                front_crotch = crotch_total_len*7/17
+                few_parameter_survey.append(round(front_crotch))
+            elif s == '211':
+                # 허리둘레를 실제 바지 허리둘레로 계산 9:10 정도?
+                pant_waist_len = int(person['211'])/9*10
+                few_parameter_survey.append(round(pant_waist_len))
+            elif s == '115':  # 전체 길이에서 엉덩뼈가시높이로 계싼
+                pant_len = int(person['115'])/11*10
+                few_parameter_survey.append(round(pant_len))
             else:
                 few_parameter_survey.append(int(person[s]))
         few_parameter_surveys.append(few_parameter_survey)
@@ -126,7 +136,7 @@ if __name__ == "__main__":
             if data:  # data가 빈 데이터가 아니라면
                 hw_filtered_dict[height][weight] = data
 
-    """
+    """하체
     surveys = readAndSave.read_json('man_size.json', 'utf8')
 
     height_list = [int(survey['104']) for survey in surveys]
