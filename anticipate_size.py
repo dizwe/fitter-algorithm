@@ -42,10 +42,40 @@ def find_close_distance(height, weight, all_data):
     return other_users[index].tolist()
 
 
+def find_size_under_significance(sorted_data, start_index=0, data_error=0.05):
+    """적당 확률 찾을때까지 돌리기"""
+    test_data = sorted_data[start_index]
+    direction = 'right' if start_index == -1 else 'left'
+
+    # error 허용범위를 넘는다면 다른 데이터 찾아봐
+    while size_p_value(test_data, sorted_data, direction=direction) < data_error:
+        # 0이면 1씩 커지고 -1이면 1씩 작아지고
+        print(sorted_data)
+        start_index = start_index+1 if start_index >= 0 else start_index-1
+        test_data = sorted_data[start_index]
+        print(test_data)
+    return test_data
+
+
+def size_p_value(size, parameter, direction='left'):
+    """t 분포표 만들고 p value 리턴하기"""
+    # 자유도, 기댓값, 표준편차 계산(이건 데이터가 다를때 해야되는 거겠지)
+    parameter_basic_info = [len(parameter) - 1, np.mean(parameter), np.std(parameter)]
+
+    xx = np.linspace(min(parameter), max(parameter), 100)  # 그래프 범위
+
+    rv = sp.stats.t(df=parameter_basic_info[0], loc=parameter_basic_info[1], scale=parameter_basic_info[2])
+    plt.plot(xx, rv.pdf(xx))  # xx의 범위의 그래프르 stats pdf(probability density function)의 해당 값을 y값으로
+    # plt.show()
+    if direction == 'left':
+        return rv.cdf(size)
+    elif direction == 'right':
+        return rv.sf(size)
+
+
 # 자료가 두 개 이상이 될때까지
 def str_to_int_find_good_data(height, weight, hw_filtered_sizes):
     """데이터가 없을때는 가까운 데이터 가져오기. 가져온 데이터가 한개라면 가까운 데이터 가져오기"""
-
     try:
         hw_filtered_size_nums = [size_str_to_num(a_person)
                                  for a_person in hw_filtered_sizes[str(height)][str(weight)]]
@@ -157,98 +187,6 @@ def guess_int_by_question(qna, sizes_each_parameter, data_error=0.05):
     return suggest_size
 
 
-def find_size_under_significance(sorted_data, start_index=0, data_error=0.05):
-    """적당 확률 찾을때까지 돌리기"""
-    test_data = sorted_data[start_index]
-    direction = 'right' if start_index == -1 else 'left'
 
-    # error 허용범위를 넘는다면 다른 데이터 찾아봐
-    while size_p_value(test_data, sorted_data, direction=direction) < data_error:
-        # 0이면 1씩 커지고 -1이면 1씩 작아지고
-        print(sorted_data)
-        start_index = start_index+1 if start_index >= 0 else start_index-1
-        test_data = sorted_data[start_index]
-        print(test_data)
-    return test_data
-
-
-def size_p_value(size, parameter, direction='left'):
-    """t 분포표 만들고 p value 리턴하기"""
-    # 자유도, 기댓값, 표준편차 계산(이건 데이터가 다를때 해야되는 거겠지)
-    parameter_basic_info = [len(parameter) - 1, np.mean(parameter), np.std(parameter)]
-
-    xx = np.linspace(min(parameter), max(parameter), 100)  # 그래프 범위
-
-    rv = sp.stats.t(df=parameter_basic_info[0], loc=parameter_basic_info[1], scale=parameter_basic_info[2])
-    plt.plot(xx, rv.pdf(xx))  # xx의 범위의 그래프르 stats pdf(probability density function)의 해당 값을 y값으로
-    # plt.show()
-    if direction == 'left':
-        return rv.cdf(size)
-    elif direction == 'right':
-        return rv.sf(size)
-
-
-def size_to_real(size_list):
-    """다시 실측값으로 바꾸기"""
-    func_list = ['height', 'shoulder', 'chest', 'arm', 'waist']
-    # ["XS", "S", "M", "L", "XL", "XXL", "XXXL"]
-    criteria_list = {
-        'shoulder': [395, 410, 425, 440, 460, 480, 500],  # 애매 기준
-        'chest': [840, 850, 930, 1010, 1080, 1200, 1280],
-        'arm': [560, 565, 585, 600, 615, 625, 625],  # 애매 기준
-        'waist': [720, 760, 840, 920, 1000, 1080, 1160],
-        'height': [1650, 1650, 1750, 2000, 2100, 2100, 2100],  # 일단 작은걸로 되개 하자.2000은 그냥 의미없음
-    }
-
-    each_par_real = {}
-    for i, size in enumerate(size_list):
-        parameter_size_list = criteria_list[func_list[i]]
-        each_par_real[func_list[i]] = parameter_size_list[size]
-
-    return each_par_real
-
-
-"""하의도 여기서는 딱히 바꿀 것이 없을거"""
 if __name__ == "__main__":
-    """상의"""
-    # # 바뀌는 파트
-    # hw_filtered_sizes = readAndSave.read_json('hw_filtered_survey.json', 'utf8')
-    # user_height = 1770
-    # user_weight = 70
-    #
-    # # 괜찮은 사이즈를 찾고 글자 데이터를 숫자로 바꾸기
-    # hw_filtered_size_nums = str_to_int_find_good_data(user_height, user_weight, hw_filtered_sizes)
-    # # 몸 부위별로 모으기
-    # size_each_parameter = [[one_person[parameter]
-    #                         for one_person in hw_filtered_size_nums]
-    #                        for parameter in range(len(hw_filtered_size_nums[0]))]
-    #
-    # """예상 사이즈 추천하기"""
-    # # 답변에 따라서
-    # # ['height', 'shoulder', 'chest', 'arm', 'waist'] 순서 / 1 은 보통 0이 SMALL
-    # question = [1, 0, 2, 1, 1]  # ~하면 가 남는 편이다
-    # suggested_size = guess_size_by_question(question, size_each_parameter)
-    # suggested_real = size_to_real(suggested_size)
-    # print(suggested_size)
-
-    """하의"""
-    # 바뀌는 파트
-    hw_filtered_sizes = readAndSave.read_json('bottom_hw_filtered_survey.json', 'utf8')
-    user_height = 1770
-    user_weight = 70
-
-    # 괜찮은 사이즈를 찾고 글자 데이터를 숫자로 바꾸기
-    hw_filtered_size_nums = int_find_good_data(user_height, user_weight, hw_filtered_sizes)
-
-    # 몸 부위별로 모으기
-    size_each_parameter = [[one_person[parameter]
-                            for one_person in hw_filtered_size_nums]
-                           for parameter in range(len(hw_filtered_size_nums[0]))]  # 변수개수만큼 돌리기
-
-    """예상 사이즈 추천하기"""
-    # 답변에 따라서
-    # ['waist', 'crotch', 'thigh', 'length', 'hem', 'hip'] 순서
-    question = [0, 1, 2, 1, 1, 2]  # ~하면 가 남는 편이다
-    suggested_size = guess_int_by_question(question, size_each_parameter) # 숫자니까..
-    # suggested_real = size_to_real(suggested_size)
-    print(suggested_size)
+    pass
