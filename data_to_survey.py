@@ -95,61 +95,41 @@ def get_whole_body_hw_filtered_dict(height, weight, filtered_surveys):
     return few_parameter_surveys
 
 
-if __name__ == "__main__":
-    surveys = readAndSave.read_json('man_size.json','utf8')
+def main_function(func, file_name):
+    surveys = readAndSave.read_json('man_size.json', 'utf8')
 
     height_list = [int(survey['104']) for survey in surveys]
-    height_min, height_max = min(height_list)//10 * 10, max(height_list)//10 * 10 # 1774->1770
+    height_min, height_max = min(height_list) // 10 * 10, max(height_list) // 10 * 10  # 1774->1770
 
     hw_filtered_dict = {}
-    for height in range(height_min, height_max + 10, 10):#10mm씩 키 검색
+    for height in range(height_min, height_max + 10, 10):  # 10mm씩 키 검색
         print('height{}'.format(height))
         height_filtered_list = list(filter(partial(search_data, height=height), surveys))
-        if len(height_filtered_list) == 0: continue # 키 자료 없으면 안뽑기
+        if len(height_filtered_list) == 0: continue  # 키 자료 없으면 안뽑기
 
         # 키 안에 있는 몸무게 데이터 접근
         weight_list = [float(height_filtered['510']) for height_filtered in height_filtered_list]
         weight_min, weight_max = round(min(weight_list)), round(max(weight_list))
         print('weight min{}, max {}'.format(weight_min, weight_max))
 
-        """상의"""
-        # hw_filtered_dict[height] ={}
-        # if weight_min == weight_max: # 자료가 하나밖에 없다면(하나만 있으면 range 문이 안돌아가므로)
-        #     weight = weight_min
-        #     hw_filtered_dict[height][weight] = get_top_hw_filtered_dict(height, weight, height_filtered_list)
-        #     continue
-        # for weight in range(weight_min, weight_max, 1):
-        #     # 없는 몸무게도 일단 들어가는 문제
-        #     data = get_top_hw_filtered_dict(height, weight, height_filtered_list)
-        #     if data:  # data가 빈 데이터가 아니라면
-        #         hw_filtered_dict[height][weight] = data
-
-        """하의"""
-        # hw_filtered_dict[height] = {}
-        # if weight_min == weight_max:  # 자료가 하나밖에 없다면(하나만 있으면 range 문이 안돌아가므로)
-        #     weight = weight_min
-        #     hw_filtered_dict[height][weight] = get_bottom_hw_filtered_dict(height, weight, height_filtered_list)
-        #     continue
-        # for weight in range(weight_min, weight_max, 1):
-        #     # 없는 몸무게도 일단 들어가는 문제
-        #     data = get_bottom_hw_filtered_dict(height, weight, height_filtered_list)
-        #     if data:  # data가 빈 데이터가 아니라면
-        #         hw_filtered_dict[height][weight] = data
-
-        """전체"""
         hw_filtered_dict[height] = {}
         if weight_min == weight_max:  # 자료가 하나밖에 없다면(하나만 있으면 range 문이 안돌아가므로)
             weight = weight_min
-            hw_filtered_dict[height][weight] = get_whole_body_hw_filtered_dict(height, weight, height_filtered_list)
+            hw_filtered_dict[height][weight] = func(height, weight, height_filtered_list)
             continue
         for weight in range(weight_min, weight_max, 1):
             # 없는 몸무게도 일단 들어가는 문제
-            data = get_whole_body_hw_filtered_dict(height, weight, height_filtered_list)
-            if data:  # data가 빈 데이터가 아니라면
+            data = func(height, weight, height_filtered_list)
+            if data:  # data 가 빈 데이터가 아니라면
                 hw_filtered_dict[height][weight] = data
 
+        readAndSave.save_json(hw_filtered_dict, file_name, 'utf8')
 
-"""바지로 바뀌면 위에 guess_uper_size만 바꾸면 된다"""
-# readAndSave.save_json(hw_filtered_dict, 'top_hw_filtered_survey.json', 'utf8')
-# readAndSave.save_json(hw_filtered_dict, 'bottom_hw_filtered_survey.json', 'utf8')
-readAndSave.save_json(hw_filtered_dict, 'whole_hw_filtered_survey.json', 'utf8')
+
+if __name__ == "__main__":
+    func = get_whole_body_hw_filtered_dict
+    file_name = 'whole_hw_filtered_survey.json'
+
+    main_function(func=func, file_name=file_name)
+
+
