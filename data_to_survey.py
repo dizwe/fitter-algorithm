@@ -59,6 +59,42 @@ def get_bottom_hw_filtered_dict(height, weight, filtered_surveys):
     return few_parameter_surveys
 
 
+def get_whole_body_hw_filtered_dict(height, weight, filtered_surveys):
+    hw_filtered_surveys = list(filter(partial(search_data, height=height, weight=weight), filtered_surveys))
+    if len(hw_filtered_surveys) == 0: return False  # 데이터 없으면 그냥 False
+
+    # ['shoulder', 'chest', 'arm', 'waist'
+    # 'bottom_waist', 'crotch', 'thigh', 'length', 'hem', 'hip',
+    # 'crotch_height', 'middle_thigh', 'knee', 'calf']
+
+    few_parameter_surveys = []
+    for i, person in enumerate(hw_filtered_surveys):
+        few_parameter_survey = []
+        param_list = ['317', '208', '233', '211',  # 317 어깨너비 208 가슴둘레 233 팔길이 211 허리둘레
+                      '211-2', '241', '419', '115', '424', '214',  # 241 배꼽수준 샅앞뒤길이 419 넙다리둘레 115 엉덩뼈가시높이 424 종아리 최소둘레 214 엉덩이
+                      '128', '420', '421', '423']  # 128 샅높이 420 넙다리 중간둘레 421 무릎둘레 423 장딴지 둘레
+        for s in param_list:
+            # 밑위를 구하기(엉덩뼈가시높이-넙다리둘레)- 이거 이상행....
+            if s == '241':
+                # 샅전체-2(배꼽수준-엉덩뼈)
+                crotch_total_len = int(person['241'])-2*(int(person['114'])-int(person['115']))
+                # 앞샅길이(10:7 비율)
+                front_crotch = crotch_total_len*7/17
+                few_parameter_survey.append(round(front_crotch))
+            elif s == '211-2':
+                # 허리둘레를 실제 바지 허리둘레로 계산 9:10 정도?
+                pant_waist_len = int(person['211'])/9*10
+                few_parameter_survey.append(round(pant_waist_len))
+            elif s == '115':  # 전체 길이(100)에서 발목높이(6)로 계싼
+                pant_len = int(person['115'])/50*47
+                few_parameter_survey.append(round(pant_len))
+            else:
+                few_parameter_survey.append(int(person[s]))
+        few_parameter_surveys.append(few_parameter_survey)
+
+    return few_parameter_surveys
+
+
 if __name__ == "__main__":
     surveys = readAndSave.read_json('man_size.json','utf8')
 
@@ -89,18 +125,31 @@ if __name__ == "__main__":
         #         hw_filtered_dict[height][weight] = data
 
         """하의"""
+        # hw_filtered_dict[height] = {}
+        # if weight_min == weight_max:  # 자료가 하나밖에 없다면(하나만 있으면 range 문이 안돌아가므로)
+        #     weight = weight_min
+        #     hw_filtered_dict[height][weight] = get_bottom_hw_filtered_dict(height, weight, height_filtered_list)
+        #     continue
+        # for weight in range(weight_min, weight_max, 1):
+        #     # 없는 몸무게도 일단 들어가는 문제
+        #     data = get_bottom_hw_filtered_dict(height, weight, height_filtered_list)
+        #     if data:  # data가 빈 데이터가 아니라면
+        #         hw_filtered_dict[height][weight] = data
+
+        """전체"""
         hw_filtered_dict[height] = {}
         if weight_min == weight_max:  # 자료가 하나밖에 없다면(하나만 있으면 range 문이 안돌아가므로)
             weight = weight_min
-            hw_filtered_dict[height][weight] = get_bottom_hw_filtered_dict(height, weight, height_filtered_list)
+            hw_filtered_dict[height][weight] = get_whole_body_hw_filtered_dict(height, weight, height_filtered_list)
             continue
         for weight in range(weight_min, weight_max, 1):
             # 없는 몸무게도 일단 들어가는 문제
-            data = get_bottom_hw_filtered_dict(height, weight, height_filtered_list)
+            data = get_whole_body_hw_filtered_dict(height, weight, height_filtered_list)
             if data:  # data가 빈 데이터가 아니라면
                 hw_filtered_dict[height][weight] = data
 
 
 """바지로 바뀌면 위에 guess_uper_size만 바꾸면 된다"""
 # readAndSave.save_json(hw_filtered_dict, 'top_hw_filtered_survey.json', 'utf8')
-readAndSave.save_json(hw_filtered_dict, 'bottom_hw_filtered_survey.json', 'utf8')
+# readAndSave.save_json(hw_filtered_dict, 'bottom_hw_filtered_survey.json', 'utf8')
+readAndSave.save_json(hw_filtered_dict, 'whole_hw_filtered_survey.json', 'utf8')
