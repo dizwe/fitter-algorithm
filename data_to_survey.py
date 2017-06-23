@@ -72,7 +72,7 @@ def get_whole_body_hw_filtered_dict(height, weight, filtered_surveys):
         few_parameter_survey = []
         param_list = ['317', '208', '233', '211',  # 317 어깨너비 208 가슴둘레 233 팔길이 211 허리둘레
                       '211-2', '241', '419', '115', '424', '214',  # 241 배꼽수준 샅앞뒤길이 419 넙다리둘레 115 엉덩뼈가시높이 424 종아리 최소둘레 214 엉덩이
-                      '128', '420', '421', '423']  # 128 샅높이 420 넙다리 중간둘레 421 무릎둘레 423 장딴지 둘레
+                      '128', '420', '421', '423', '209']  # 128 샅높이 420 넙다리 중간둘레 421 무릎둘레 423 장딴지 둘레 209 젖가슴둘레
         for s in param_list:
             # 밑위를 구하기(엉덩뼈가시높이-넙다리둘레)- 이거 이상행....
             if s == '241':
@@ -95,8 +95,8 @@ def get_whole_body_hw_filtered_dict(height, weight, filtered_surveys):
     return few_parameter_surveys
 
 
-def main_function(func, file_name):
-    surveys = readAndSave.read_json('man_size.json', 'utf8')
+def main_function(sex_file, func):
+    surveys = readAndSave.read_json(sex_file, 'utf8')
 
     height_list = [int(survey['104']) for survey in surveys]
     height_min, height_max = min(height_list) // 10 * 10, max(height_list) // 10 * 10  # 1774->1770
@@ -117,19 +117,24 @@ def main_function(func, file_name):
             weight = weight_min
             hw_filtered_dict[height][weight] = func(height, weight, height_filtered_list)
             continue
-        for weight in range(weight_min, weight_max, 1):
+        for weight in range(weight_min, weight_max+1, 1):
             # 없는 몸무게도 일단 들어가는 문제
             data = func(height, weight, height_filtered_list)
             if data:  # data 가 빈 데이터가 아니라면
                 hw_filtered_dict[height][weight] = data
 
-        readAndSave.save_json(hw_filtered_dict, file_name, 'utf8')
+    return hw_filtered_dict
 
 
 if __name__ == "__main__":
     func = get_whole_body_hw_filtered_dict
-    file_name = 'whole_hw_filtered_survey.json'
+    save_file_name = 'whole_hw_filtered_survey_man_woman.json'
 
-    main_function(func=func, file_name=file_name)
+    man_hw_filtered_dict = main_function(sex_file='man_size.json', func=func)
+    woman_hw_filtered_dict = main_function(sex_file='woman_size.json', func=func)
+
+    hw_filtered_dict = {'man': man_hw_filtered_dict, 'woman': woman_hw_filtered_dict}
+
+    readAndSave.save_json(hw_filtered_dict, save_file_name, 'utf8')
 
 
