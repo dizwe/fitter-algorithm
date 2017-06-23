@@ -128,7 +128,7 @@ def int_find_good_data(height, weight, hw_filtered_sizes):
         """데이터가 없을 때"""
         assumed_height, assumed_weight = find_close_distance(height, weight, hw_filtered_sizes)
         # 재귀 함수를 했으면 return 도 해줘야지 여기서 끝나는게 아닌데
-        return str_to_int_find_good_data(assumed_height, assumed_weight, hw_filtered_sizes)
+        return int_find_good_data(assumed_height, assumed_weight, hw_filtered_sizes)
 
 
 def guess_size_by_question(qna, sizes_each_parameter, data_error=0.05):
@@ -185,8 +185,3 @@ def guess_int_by_question(qna, sizes_each_parameter, data_error=0.05):
                 suggest_size.append(size)
 
     return suggest_size
-
-
-
-if __name__ == "__main__":
-    pass
