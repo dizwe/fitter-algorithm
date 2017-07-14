@@ -26,7 +26,7 @@ def draw_2d_dot(except_x=0, except_y=0, all_data={}):
     return xy_tuple
 
 
-def find_close_distance(height, weight, all_data):
+def find_close_distance(height, weight, all_data, th=0):
     # http://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
     """유클리드 거리 짧은거 찾기"""
 
@@ -37,7 +37,7 @@ def find_close_distance(height, weight, all_data):
     # 데이터 점 중에 가장 가까운 점 찾기
     deltas = other_users - user
     dist = np.einsum('ij,ij->i', deltas, deltas)  # deltas 값 제곱
-    index = np.argmin(dist)  # 거기서 최소 index?
+    index = np.argmin(dist) if th == 0 else np.argpartition(dist, th)[th]
 
     return other_users[index].tolist()
 
@@ -102,31 +102,36 @@ def str_to_int_find_good_data(height, weight, hw_filtered_sizes):
         return str_to_int_find_good_data(assumed_height, assumed_weight, hw_filtered_sizes)
 
 
-def int_find_good_data(height, weight, hw_filtered_sizes):
+def int_find_good_data(height, weight, hw_filtered_sizes, data_min=3, dist_max=18):
     """데이터가 없을때는 가까운 데이터 가져오기. 가져온 데이터가 한개라면 가까운 데이터 가져오기"""
     """줄 두줄 바뀌는건데 어떻게 잘 할 방법 없을까?(데코레이터)"""
     try:
         hw_filtered_size_nums = [a_person
                                  for a_person in hw_filtered_sizes[str(height)][str(weight)]]
+        kth = 0  # 가까운거 순서대로 하나씩 찾아야지
 
-        def find_another_data():
+        def find_another_data(th):
             """2개 이하의 데이터가 있을 때 가까운     값에서 하나 더 찾아오기"""
             """# 큰 데이터가 너무 왔다갔다 하는거 아닌가... 싶다 문제문제~~~"""
-            another_height, another_weight = find_close_distance(height, weight, hw_filtered_sizes)
+            another_height, another_weight = find_close_distance(height, weight, hw_filtered_sizes, th=th)
 
             another_data = [a_person
                             for a_person in hw_filtered_sizes[str(another_height)][str(another_weight)]]
 
             hw_filtered_size_nums.extend(another_data)
 
-        if len(hw_filtered_size_nums) < 2:
-            find_another_data()
+        while len(hw_filtered_size_nums) < data_min:  # 원하는 개수만큼 찾을때까지
+            find_another_data(kth)
+            kth += 1
 
         return hw_filtered_size_nums
 
     except KeyError:
         """데이터가 없을 때"""
         assumed_height, assumed_weight = find_close_distance(height, weight, hw_filtered_sizes)
+        """너무 멀진 않니?"""
+        two_points_dists = (assumed_height-height)**2 + (assumed_weight-weight)**2
+        if two_points_dists>dist_max: return None
         # 재귀 함수를 했으면 return 도 해줘야지 여기서 끝나는게 아닌데
         return int_find_good_data(assumed_height, assumed_weight, hw_filtered_sizes)
 
